@@ -8,4 +8,4 @@ __pycache__/
 *.jsonl
 *.seen.json
 .DS_Store
-out
+out/

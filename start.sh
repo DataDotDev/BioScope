@@ -95,7 +95,9 @@ else
 fi
 
 echo "[5/6] Preparing runtime state"
+set -a
 source "$ROOT_DIR/.env"
+set +a
 
 if [[ "$RESET_STATE" == "true" ]]; then
   echo "Resetting local sink and incremental state files"

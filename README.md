@@ -14,22 +14,32 @@ Scope (MVP):
 
 Separate repositories by context. This repo is ingestion-only. Other components (processing, APIs, UI, analytics) live in separate repos.
 
-## Current Status
+## Project Checklist
 
-Implemented in this repo today:
+Completed:
 
-- Scrapy-based ingestion pipeline for BioScope backend
-- ClinicalTrials.gov API spider with optional company filtering
-- FDA openFDA JSON spider for regulatory signals
-- EMA RSS spider with active feed links
-- Incremental crawling with source state tracking
-- Local JSONL sink for development
-- Optional Kafka publishing path for production-style deployments
-- Persistent local deduplication by `identifiers.nct_id`
-- Docker and GitHub Actions scaffolding
-- One-command local startup via `bash start.sh`
+- [x] Scrapy-based ingestion pipeline for BioScope backend
+- [x] ClinicalTrials.gov API spider with optional company filtering (`TARGET_COMPANY`)
+- [x] FDA openFDA JSON spider for regulatory updates
+- [x] EMA RSS spider wired to active feed URL
+- [x] Incremental crawling support for FDA JSON + EMA RSS (`ETag`, `If-Modified-Since`, `last_seen`)
+- [x] Persistent source-state store (SQLite)
+- [x] Local JSONL sink for development
+- [x] Optional Kafka publishing path for production-style deployments
+- [x] Persistent local deduplication by `identifiers.nct_id`
+- [x] Automated startup script with `--all`, `--spider`, `--reset-state`, `--skip-install`
+- [x] Docker and GitHub Actions scaffolding
 
-This means the repo is now usable as a backend ingestion foundation, but it is still focused on source collection and normalization rather than advanced intelligence or analytics.
+In progress / upcoming:
+
+- [ ] ClinicalTrials incremental crawling with watermarks/cursor strategy
+- [ ] Canonicalization rules for company and drug names
+- [ ] Cross-source deduplication beyond NCT ID
+- [ ] Pydantic schema validation for normalized records
+- [ ] Structured JSON logging + ingestion metrics
+- [ ] Better company-focused filtering for FDA/EMA sources
+- [ ] Unit tests for parsers/filters/dedup logic
+- [ ] Integration tests for spider outputs and sink behavior
 
 ## Minimal, expandable structure
 
@@ -144,48 +154,23 @@ For FDA JSON and EMA RSS, incremental mode stores `ETag`, `Last-Modified`, and `
 
 These defaults are active in `.env.example` and are recommended for reliable ingestion.
 
-## Milestone 1 Delivered
+## Milestone Tracker
 
-- Added persistent source state storage (`src/common/state_store.py`) using SQLite
-- Added conditional requests (`If-None-Match`, `If-Modified-Since`) for FDA JSON and EMA RSS
-- Added watermark filtering by `last_seen` for FDA JSON and EMA RSS items
-- Added configuration flags to enable/disable incremental mode and control state path
+Milestone 1: Foundation + Incremental RSS/JSON
 
-## Upcoming Features
+- [x] Source-state storage in `src/common/state_store.py`
+- [x] Conditional fetch (`If-None-Match`, `If-Modified-Since`) for FDA JSON + EMA RSS
+- [x] `last_seen` watermark filtering for FDA JSON + EMA RSS
+- [x] Config support in `.env` / `.env.example`
 
-The next features I would implement in this repo are:
+Milestone 2: ClinicalTrials Incremental + Canonicalization
 
-1. Source-level incremental crawling
+- [ ] Incremental strategy for ClinicalTrials API (timestamp/cursor)
+- [ ] Canonical company normalization map
+- [ ] Improved dedup for records without stable IDs
 
-- Track `last_seen` per source and use `ETag` / `If-Modified-Since` where supported.
-- Reduce redundant requests and speed up repeat runs.
+Milestone 3: Reliability + Quality
 
-2. Better normalization and canonicalization
-
-- Standardize company, drug, condition, and trial identifiers.
-- Collapse similar sponsor names into one canonical company record.
-
-3. Stronger deduplication rules
-
-- Deduplicate by `NCT ID`, title, sponsor, and date window when IDs are missing.
-- Prevent repeated alerts from near-duplicate updates.
-
-4. Schema validation
-
-- Add Pydantic models for raw and normalized records.
-- Fail fast when a source changes shape.
-
-5. Structured logging and observability
-
-- Add JSON logs, crawl metrics, and error traces.
-- Make it easier to debug source failures.
-
-6. Company-focused filtering
-
-- Add source-specific rules so each crawl can be constrained to one company or competitor set.
-- Make the output directly useful for pipeline-strength tracking.
-
-7. Test coverage
-
-- Add unit tests for parsing, filtering, and dedup logic.
-- Add integration tests for spider output and sink behavior.
+- [ ] Pydantic schema validation
+- [ ] Structured logging and metrics
+- [ ] Unit and integration tests
