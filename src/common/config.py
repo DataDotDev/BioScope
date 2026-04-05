@@ -13,3 +13,10 @@ def env_str(name: str, default: str | None = None) -> str | None:
     if value is None:
         return default
     return value
+
+
+def env_int(name: str, default: int) -> int:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return int(value)
