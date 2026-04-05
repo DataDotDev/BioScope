@@ -1,0 +1,9 @@
+version: "3.9"
+services:
+  ingestion:
+    build: .
+    env_file:
+      - .env
+    volumes:
+      - ./out:/app/out
+    command: ["crawl", "clinicaltrials_api"]
