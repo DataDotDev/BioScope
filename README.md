@@ -137,6 +137,8 @@ The script uses the local JSONL sink by default. To route output to Kafka, set `
 - STATE_STORE_PATH: SQLite state file used for source watermarks and HTTP cache headers
 - TARGET_COMPANY: optional company filter for ClinicalTrials scraping
 - CLINICALTRIALS_QUERY: default query term (e.g., diabetes)
+- CLINICALTRIALS_SORT: ClinicalTrials API sort order, default `LastUpdatePostDate:desc`
+- CLINICALTRIALS_PAGINATION_CUTOFF_ENABLED: stop paging when incremental watermark cutoff is reached (default: true)
 - FDA_JSON_URL: openFDA JSON endpoint (example: `https://api.fda.gov/drug/enforcement.json?limit=100`)
 - EMA_RSS_URL: EMA RSS feed URL (recommended: `https://www.ema.europa.eu/en/news.xml`)
 - FDA_RSS_URL: optional legacy RSS URL if you have a valid FDA feed endpoint
@@ -146,6 +148,8 @@ To scrape only one company, set `TARGET_COMPANY` in `.env`. The ClinicalTrials s
 To prevent repeating the same trial across runs, the local sink now skips records with the same `identifiers.nct_id` and stores seen IDs in `out/ingestion.seen.json` by default.
 
 For FDA JSON and EMA RSS, incremental mode stores `ETag`, `Last-Modified`, and `last_seen` timestamps in `STATE_STORE_PATH` and reuses them on subsequent runs.
+
+For ClinicalTrials API, incremental mode stores a `last_seen` watermark in `STATE_STORE_PATH`, filters older/equal records, and follows `nextPageToken` until cutoff when sorted by `LastUpdatePostDate:desc`.
 
 ## Active Source Defaults
 
@@ -165,7 +169,7 @@ Milestone 1: Foundation + Incremental RSS/JSON
 
 Milestone 2: ClinicalTrials Incremental + Canonicalization
 
-- [ ] Incremental strategy for ClinicalTrials API (timestamp/cursor)
+- [x] Incremental strategy for ClinicalTrials API (timestamp + cursor pagination)
 - [ ] Canonical company normalization map
 - [ ] Improved dedup for records without stable IDs
 
