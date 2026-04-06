@@ -10,6 +10,7 @@ from common.state_store import SourceStateStore
 class FdaOpenFdaSpider(scrapy.Spider):
     name = "fda_openfda"
     allowed_domains = ["api.fda.gov"]
+    handle_httpstatus_list = [304]
     custom_settings = {
         "ROBOTSTXT_OBEY": False,
     }

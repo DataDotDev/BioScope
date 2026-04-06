@@ -11,6 +11,7 @@ from common.state_store import SourceStateStore
 
 class FdaRssSpider(scrapy.Spider):
     name = "fda_rss"
+    handle_httpstatus_list = [304]
 
     def start_requests(self):
         feed_url = os.getenv("FDA_RSS_URL", "").strip()

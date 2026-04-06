@@ -1,5 +1,6 @@
 import json
 import os
+import hashlib
 from pathlib import Path
 from typing import Any
 
@@ -20,12 +21,14 @@ class KafkaSink:
         local_path: str,
         dedup_key: str,
         dedup_state_path: str,
+        dedup_fallback_enabled: bool,
     ):
         self.enabled = enabled
         self.topic = topic
         self.local_path = Path(local_path)
         self.dedup_key = dedup_key
         self.dedup_state_path = Path(dedup_state_path)
+        self.dedup_fallback_enabled = dedup_fallback_enabled
         self._seen_dedup_keys: set[str] = set()
         self._producer = None
         if enabled:
@@ -48,6 +51,7 @@ class KafkaSink:
         topic = env_str("KAFKA_TOPIC", "bioscope.ingestion.raw") or "bioscope.ingestion.raw"
         local_path = env_str("LOCAL_SINK_PATH", "./out/ingestion.jsonl") or "./out/ingestion.jsonl"
         dedup_key = env_str("LOCAL_DEDUP_KEY", "identifiers.nct_id") or "identifiers.nct_id"
+        dedup_fallback_enabled = env_bool("LOCAL_DEDUP_FALLBACK_ENABLED", True)
         default_state_path = str(Path(local_path).with_suffix(".seen.json"))
         dedup_state_path = env_str("LOCAL_DEDUP_STATE_PATH", default_state_path) or default_state_path
         return cls(
@@ -57,6 +61,7 @@ class KafkaSink:
             local_path=local_path,
             dedup_key=dedup_key,
             dedup_state_path=dedup_state_path,
+            dedup_fallback_enabled=dedup_fallback_enabled,
         )
 
     def send(self, payload: Any) -> None:
@@ -67,6 +72,8 @@ class KafkaSink:
             return
 
         dedup_value = self._extract_dedup_value(record)
+        if dedup_value is None and self.dedup_fallback_enabled:
+            dedup_value = self._build_fallback_dedup_value(record)
         if dedup_value and dedup_value in self._seen_dedup_keys:
             return
 
@@ -116,3 +123,46 @@ class KafkaSink:
             return None
 
         return str(value)
+
+    @staticmethod
+    def _build_fallback_dedup_value(record: dict[str, Any]) -> str | None:
+        identifiers = record.get("identifiers")
+        normalized = record.get("normalized")
+
+        fingerprint_payload = {
+            "source": record.get("source"),
+            "record_type": record.get("record_type"),
+            "observed_at": record.get("observed_at"),
+            "identifiers": identifiers if isinstance(identifiers, dict) else {},
+            "normalized": {
+                "title": normalized.get("title") if isinstance(normalized, dict) else None,
+                "link": normalized.get("link") if isinstance(normalized, dict) else None,
+                "status": normalized.get("status") if isinstance(normalized, dict) else None,
+                "lead_sponsor": (
+                    normalized.get("canonical_lead_sponsor")
+                    if isinstance(normalized, dict)
+                    else None
+                ),
+            },
+        }
+
+        if not any(
+            [
+                fingerprint_payload["source"],
+                fingerprint_payload["record_type"],
+                fingerprint_payload["observed_at"],
+                fingerprint_payload["identifiers"],
+                fingerprint_payload["normalized"].get("title"),
+                fingerprint_payload["normalized"].get("link"),
+            ]
+        ):
+            return None
+
+        encoded = json.dumps(
+            fingerprint_payload,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+        )
+        digest = hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+        return f"fp:{digest}"

@@ -7,6 +7,7 @@ import scrapy
 
 from bioscope_ingestion.items import IngestionRecord
 from common.config import env_bool, env_int, env_str
+from common.normalization import normalize_company_name, normalize_drug_name
 from common.state_store import SourceStateStore
 
 
@@ -107,6 +108,11 @@ class ClinicalTrialsApiSpider(scrapy.Spider):
             phase = status.get("phase") or status.get("phases")
             overall_status = status.get("overallStatus")
             lead_sponsor = sponsor.get("leadSponsor", {}).get("name")
+            canonical_lead_sponsor = normalize_company_name(lead_sponsor)
+            interventions = protocol.get("armsInterventionsModule", {}).get(
+                "interventions", []
+            )
+            canonical_drugs = self._extract_canonical_drugs(interventions)
 
             if target_company and not self._matches_company(
                 target_company, title, lead_sponsor, conditions.get("conditions", [])
@@ -125,6 +131,8 @@ class ClinicalTrialsApiSpider(scrapy.Spider):
                     "status": overall_status,
                     "conditions": conditions.get("conditions", []),
                     "lead_sponsor": lead_sponsor,
+                    "canonical_lead_sponsor": canonical_lead_sponsor,
+                    "canonical_drugs": canonical_drugs,
                 },
                 identifiers={
                     "nct_id": nct_id,
@@ -188,6 +196,11 @@ class ClinicalTrialsApiSpider(scrapy.Spider):
 
     @staticmethod
     def _matches_company(company: str, title: str | None, lead_sponsor: str | None, conditions: list[str]) -> bool:
+        canonical_company = normalize_company_name(company)
+        canonical_lead_sponsor = normalize_company_name(lead_sponsor)
+        if canonical_company and canonical_lead_sponsor and canonical_company == canonical_lead_sponsor:
+            return True
+
         haystacks = [title, lead_sponsor, *conditions]
         company_terms = [term for term in company.split() if term]
 
@@ -203,6 +216,24 @@ class ClinicalTrialsApiSpider(scrapy.Spider):
                 return True
 
         return False
+
+    @staticmethod
+    def _extract_canonical_drugs(interventions: list[dict]) -> list[str]:
+        canonical: set[str] = set()
+
+        for intervention in interventions:
+            if not isinstance(intervention, dict):
+                continue
+
+            intervention_type = str(intervention.get("type", "")).strip().lower()
+            if intervention_type and "drug" not in intervention_type:
+                continue
+
+            canonical_name = normalize_drug_name(intervention.get("name"))
+            if canonical_name:
+                canonical.add(canonical_name)
+
+        return sorted(canonical)
 
     @staticmethod
     def _extract_study_observed_at(study: dict) -> str:

@@ -11,6 +11,7 @@ from common.state_store import SourceStateStore
 
 class EmaRssSpider(scrapy.Spider):
     name = "ema_rss"
+    handle_httpstatus_list = [304]
 
     def start_requests(self):
         feed_url = os.getenv("EMA_RSS_URL", "https://www.ema.europa.eu/en/news.xml")
