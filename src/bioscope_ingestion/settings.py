@@ -9,4 +9,8 @@ ITEM_PIPELINES = {
     "bioscope_ingestion.pipelines.KafkaPipeline": 300,
 }
 
+EXTENSIONS = {
+    "bioscope_ingestion.extensions.IngestionMetricsExtension": 500,
+}
+
 LOG_LEVEL = "INFO"

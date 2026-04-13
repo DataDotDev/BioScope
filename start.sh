@@ -11,6 +11,7 @@ Usage: bash start.sh [options]
 Options:
   --spider <name>      Run a single spider (default: clinicaltrials_api)
   --all                Run all spiders sequentially
+  --backfill           Run without incremental cutoffs for this execution
   --reset-state        Remove local dedup and incremental state files before run
   --skip-install       Skip dependency installation check
   --help               Show this help message
@@ -19,11 +20,13 @@ Examples:
   bash start.sh
   bash start.sh --spider clinicaltrials_api
   bash start.sh --all
+  bash start.sh --all --backfill
   bash start.sh --all --reset-state
 EOF
 }
 
 RUN_ALL=false
+BACKFILL=false
 RESET_STATE=false
 SKIP_INSTALL=false
 SPIDER_NAME="$DEFAULT_SPIDER"
@@ -40,6 +43,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --all)
       RUN_ALL=true
+      shift
+      ;;
+    --backfill)
+      BACKFILL=true
       shift
       ;;
     --reset-state)
@@ -98,6 +105,11 @@ echo "[5/6] Preparing runtime state"
 set -a
 source "$ROOT_DIR/.env"
 set +a
+
+if [[ "$BACKFILL" == "true" ]]; then
+  echo "Backfill mode enabled for this run (INCREMENTAL_ENABLED=false)"
+  export INCREMENTAL_ENABLED=false
+fi
 
 if [[ "$RESET_STATE" == "true" ]]; then
   echo "Resetting local sink and incremental state files"

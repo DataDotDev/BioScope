@@ -32,7 +32,7 @@ Stage: Ingestion MVP complete, now entering reliability and production-hardening
 
 - Milestone 1: complete.
 - Milestone 2: complete.
-- Milestone 3: not started (except reset-state helper in start script).
+- Milestone 3: started (structured metrics/logging + backfill mode in start script).
 
 This means source ingestion correctness is in good shape for development and pilot usage, while production readiness still needs validation, observability, and test coverage work.
 
@@ -53,13 +53,16 @@ Completed:
 - [x] Persistent local deduplication by `identifiers.nct_id`
 - [x] Fallback fingerprint dedup for records without stable IDs (`LOCAL_DEDUP_FALLBACK_ENABLED`)
 - [x] Company/drug canonicalization helpers with optional alias maps from env
+- [x] Structured per-run metrics written to JSONL (`METRICS_OUTPUT_PATH`)
+- [x] Structured item-ingestion logs (JSON log lines)
+- [x] Backfill execution mode in startup script (`--backfill`)
 - [x] Automated startup script with `--all`, `--spider`, `--reset-state`, `--skip-install`
 - [x] Docker and GitHub Actions scaffolding
 
 Remaining / upcoming:
 
 - [ ] Pydantic schema validation for normalized records
-- [ ] Structured JSON logging + ingestion metrics
+- [ ] Prometheus/monitoring integration for ingestion metrics
 - [ ] Better company-focused filtering for FDA/EMA sources
 - [ ] Unit tests for parsers/filters/dedup logic
 - [ ] Integration tests for spider outputs and sink behavior
@@ -112,6 +115,9 @@ bash start.sh
 # Run all spiders sequentially
 bash start.sh --all
 
+# Backfill run (disables incremental cutoffs for this execution)
+bash start.sh --all --backfill
+
 # Run one specific spider
 bash start.sh --spider ema_rss
 
@@ -129,6 +135,7 @@ bash start.sh --help
 
 - `--spider <name>`: run one specific spider (default: `clinicaltrials_api`)
 - `--all`: run `clinicaltrials_api`, `fda_openfda`, and `ema_rss` sequentially
+- `--backfill`: run current crawl without incremental cutoffs (`INCREMENTAL_ENABLED=false` for the process)
 - `--reset-state`: remove local output and incremental state files before crawling
 - `--skip-install`: skip requirements installation/hash check
 - `--help`: print script usage and options
@@ -161,6 +168,10 @@ The script uses the local JSONL sink by default. To route output to Kafka, set `
 - LOCAL_DEDUP_STATE_PATH: sidecar file that stores seen dedup keys
 - INCREMENTAL_ENABLED: turn source-level incremental crawling on/off
 - STATE_STORE_PATH: SQLite state file used for source watermarks and HTTP cache headers
+- METRICS_ENABLED: emit per-spider run metrics to JSONL file (default: true)
+- METRICS_OUTPUT_PATH: JSONL path for ingestion run metrics
+- STRUCTURED_LOGS_ENABLED: emit JSON structured logs for ingested items (default: true)
+- STRUCTURED_LOG_EVERY_N_ITEMS: emit one structured item log every N processed items (default: 100)
 - TARGET_COMPANY: optional company filter for ClinicalTrials scraping
 - COMPANY_CANONICAL_MAP_JSON: optional JSON object mapping company aliases to canonical names
 - DRUG_CANONICAL_MAP_JSON: optional JSON object mapping drug aliases to canonical names
@@ -183,6 +194,8 @@ For ClinicalTrials API, incremental mode stores a `last_seen` watermark in `STAT
 ClinicalTrials normalization now emits `normalized.canonical_lead_sponsor` and `normalized.canonical_drugs` to support downstream entity joins.
 
 Local JSONL dedup now supports a fingerprint fallback when the configured dedup key is missing, improving deduplication across RSS/JSON records that do not carry stable IDs.
+
+Pipeline metrics are written as JSON lines to `METRICS_OUTPUT_PATH` at spider close with counts for requests, responses, 200/304 statuses, items, elapsed time, and finish reason.
 
 `.env.example` includes sample alias-map JSON values (Pfizer and Novo Nordisk variants) to demonstrate canonicalization format.
 
@@ -235,7 +248,8 @@ Milestone 2: ClinicalTrials Incremental + Canonicalization
 Milestone 3: Reliability + Quality
 
 - [ ] Pydantic schema validation
-- [ ] Structured logging and metrics
+- [x] Structured logging and file-based ingestion metrics
+- [ ] Prometheus/monitoring integration
 - [ ] Unit and integration tests
 
 ## Summary
