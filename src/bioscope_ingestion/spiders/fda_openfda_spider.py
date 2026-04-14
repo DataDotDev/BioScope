@@ -15,7 +15,7 @@ class FdaOpenFdaSpider(scrapy.Spider):
         "ROBOTSTXT_OBEY": False,
     }
 
-    def start_requests(self):
+    async def start(self):
         endpoint = env_str(
             "FDA_JSON_URL",
             "https://api.fda.gov/drug/enforcement.json?limit=100",

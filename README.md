@@ -56,15 +56,16 @@ Completed:
 - [x] Structured per-run metrics written to JSONL (`METRICS_OUTPUT_PATH`)
 - [x] Structured item-ingestion logs (JSON log lines)
 - [x] Backfill execution mode in startup script (`--backfill`)
+- [x] Pydantic schema validation in ingestion pipeline (configurable mode)
 - [x] Automated startup script with `--all`, `--spider`, `--reset-state`, `--skip-install`
 - [x] Docker and GitHub Actions scaffolding
 
 Remaining / upcoming:
 
-- [ ] Pydantic schema validation for normalized records
+- [x] Basic unit tests for schema + normalization utilities
+- [ ] Expand unit coverage for spiders/pipeline edge cases
 - [ ] Prometheus/monitoring integration for ingestion metrics
 - [ ] Better company-focused filtering for FDA/EMA sources
-- [ ] Unit tests for parsers/filters/dedup logic
 - [ ] Integration tests for spider outputs and sink behavior
 
 ## Minimal, expandable structure
@@ -151,8 +152,14 @@ bash start.sh --help
    cp .env.example .env
    ```
 3. Run a spider:
+
    ```bash
    PYTHONPATH=src scrapy crawl clinicaltrials_api
+   ```
+
+4. Run unit tests:
+   ```bash
+   pytest -q
    ```
 
 The script uses the local JSONL sink by default. To route output to Kafka, set `KAFKA_ENABLED=true` in `.env` and provide `KAFKA_BROKERS`.
@@ -170,6 +177,8 @@ The script uses the local JSONL sink by default. To route output to Kafka, set `
 - STATE_STORE_PATH: SQLite state file used for source watermarks and HTTP cache headers
 - METRICS_ENABLED: emit per-spider run metrics to JSONL file (default: true)
 - METRICS_OUTPUT_PATH: JSONL path for ingestion run metrics
+- VALIDATION_ENABLED: enable or disable Pydantic validation in the pipeline (default: true)
+- VALIDATION_MODE: behavior on validation error: `drop`, `strict`, or `warn` (default: `drop`)
 - STRUCTURED_LOGS_ENABLED: emit JSON structured logs for ingested items (default: true)
 - STRUCTURED_LOG_EVERY_N_ITEMS: emit one structured item log every N processed items (default: 100)
 - TARGET_COMPANY: optional company filter for ClinicalTrials scraping
@@ -195,7 +204,13 @@ ClinicalTrials normalization now emits `normalized.canonical_lead_sponsor` and `
 
 Local JSONL dedup now supports a fingerprint fallback when the configured dedup key is missing, improving deduplication across RSS/JSON records that do not carry stable IDs.
 
-Pipeline metrics are written as JSON lines to `METRICS_OUTPUT_PATH` at spider close with counts for requests, responses, 200/304 statuses, items, elapsed time, and finish reason.
+Pipeline metrics are written as JSON lines to `METRICS_OUTPUT_PATH` at spider close with counts for requests, responses, 200/304 statuses, items, validation pass/fail counters, elapsed time, and finish reason.
+
+Pipeline schema validation uses Pydantic and validates each normalized ingestion record before sink write.
+
+- `VALIDATION_MODE=drop`: invalid records are logged and skipped
+- `VALIDATION_MODE=strict`: invalid records fail the spider run
+- `VALIDATION_MODE=warn`: invalid records are logged but still forwarded to sink
 
 `.env.example` includes sample alias-map JSON values (Pfizer and Novo Nordisk variants) to demonstrate canonicalization format.
 
@@ -226,9 +241,9 @@ Observed results:
 - FDA openFDA and EMA RSS spiders received `304 Not Modified` and handled them correctly inside spider parse flow.
 - No runtime crashes during end-to-end `--all` execution.
 
-Known warning:
+Warning status:
 
-- Scrapy emits a deprecation warning for `REQUEST_FINGERPRINTER_IMPLEMENTATION='2.6'`; behavior is currently unaffected but should be updated in Milestone 3 hardening.
+- Previous Scrapy deprecations were resolved by upgrading to Scrapy `2.13.0` and migrating spiders from `start_requests()` to `start()`.
 
 ## Milestone Tracker
 
@@ -247,10 +262,11 @@ Milestone 2: ClinicalTrials Incremental + Canonicalization
 
 Milestone 3: Reliability + Quality
 
-- [ ] Pydantic schema validation
+- [x] Pydantic schema validation
 - [x] Structured logging and file-based ingestion metrics
+- [x] Basic unit test scaffold (schema + normalization)
 - [ ] Prometheus/monitoring integration
-- [ ] Unit and integration tests
+- [ ] Broader unit and integration tests
 
 ## Summary
 

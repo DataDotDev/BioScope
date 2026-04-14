@@ -39,6 +39,8 @@ class IngestionMetricsExtension:
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "spider": spider.name,
             "items_scraped": stats.get("item_scraped_count", 0),
+            "validation_passed": stats.get("validation/passed", 0),
+            "validation_failed": stats.get("validation/failed", 0),
             "requests_total": stats.get("downloader/request_count", 0),
             "responses_total": stats.get("downloader/response_count", 0),
             "http_200": stats.get("downloader/response_status_count/200", 0),

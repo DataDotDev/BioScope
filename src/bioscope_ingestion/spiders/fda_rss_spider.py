@@ -13,7 +13,7 @@ class FdaRssSpider(scrapy.Spider):
     name = "fda_rss"
     handle_httpstatus_list = [304]
 
-    def start_requests(self):
+    async def start(self):
         feed_url = os.getenv("FDA_RSS_URL", "").strip()
         if not feed_url:
             self.logger.info("FDA_RSS_URL is empty; skipping fda_rss spider")

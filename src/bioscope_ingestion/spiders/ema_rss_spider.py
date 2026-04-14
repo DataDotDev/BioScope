@@ -13,7 +13,7 @@ class EmaRssSpider(scrapy.Spider):
     name = "ema_rss"
     handle_httpstatus_list = [304]
 
-    def start_requests(self):
+    async def start(self):
         feed_url = os.getenv("EMA_RSS_URL", "https://www.ema.europa.eu/en/news.xml")
         incremental_enabled = env_bool("INCREMENTAL_ENABLED", True)
         state_store_path = env_str("STATE_STORE_PATH", "./out/source_state.sqlite") or "./out/source_state.sqlite"

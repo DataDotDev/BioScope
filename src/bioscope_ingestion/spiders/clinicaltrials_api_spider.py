@@ -18,7 +18,7 @@ class ClinicalTrialsApiSpider(scrapy.Spider):
         "ROBOTSTXT_OBEY": False,
     }
 
-    def start_requests(self):
+    async def start(self):
         target_company = os.getenv("TARGET_COMPANY", "").strip()
         query = target_company or os.getenv("CLINICALTRIALS_QUERY", "diabetes")
         page_size = env_int("CLINICALTRIALS_PAGE_SIZE", 50)
