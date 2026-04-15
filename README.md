@@ -13,6 +13,7 @@ What this project currently does:
 - Normalizes output records into a common ingestion envelope.
 - Publishes events to Kafka (production path) or JSONL (local development path).
 - Applies local deduplication using stable IDs with fallback fingerprint dedup when IDs are missing.
+- Uses conservative AutoThrottle and retry defaults so crawls stay polite on shared/public sources.
 - Persists source crawl state in SQLite so repeated runs are efficient and idempotent.
 
 What this repository does not include yet:
@@ -57,6 +58,7 @@ Completed:
 - [x] Structured item-ingestion logs (JSON log lines)
 - [x] Backfill execution mode in startup script (`--backfill`)
 - [x] Pydantic schema validation in ingestion pipeline (configurable mode)
+- [x] AutoThrottle and retry defaults for polite crawling
 - [x] Automated startup script with `--all`, `--spider`, `--reset-state`, `--skip-install`
 - [x] Docker and GitHub Actions scaffolding
 
@@ -175,6 +177,15 @@ The script uses the local JSONL sink by default. To route output to Kafka, set `
 - LOCAL_DEDUP_STATE_PATH: sidecar file that stores seen dedup keys
 - INCREMENTAL_ENABLED: turn source-level incremental crawling on/off
 - STATE_STORE_PATH: SQLite state file used for source watermarks and HTTP cache headers
+- AUTOTHROTTLE_ENABLED: enable Scrapy AutoThrottle (default: true)
+- AUTOTHROTTLE_START_DELAY: initial delay in seconds for AutoThrottle (default: 1)
+- AUTOTHROTTLE_MAX_DELAY: max delay in seconds for AutoThrottle (default: 10)
+- AUTOTHROTTLE_TARGET_CONCURRENCY: target concurrent requests per server (default: 1)
+- DOWNLOAD_DELAY: fixed download delay used alongside AutoThrottle (default: 1)
+- CONCURRENT_REQUESTS: total concurrent requests across the crawler (default: 8)
+- CONCURRENT_REQUESTS_PER_DOMAIN: concurrent requests per domain (default: 2)
+- RETRY_ENABLED: enable retries for transient HTTP failures (default: true)
+- RETRY_TIMES: number of retry attempts for transient HTTP failures (default: 3)
 - METRICS_ENABLED: emit per-spider run metrics to JSONL file (default: true)
 - METRICS_OUTPUT_PATH: JSONL path for ingestion run metrics
 - VALIDATION_ENABLED: enable or disable Pydantic validation in the pipeline (default: true)
