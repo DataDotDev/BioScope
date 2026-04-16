@@ -16,6 +16,8 @@ class ClinicalTrialsApiSpider(scrapy.Spider):
     allowed_domains = ["clinicaltrials.gov"]
     custom_settings = {
         "ROBOTSTXT_OBEY": False,
+        "DOWNLOAD_DELAY": float(env_int("CLINICALTRIALS_DOWNLOAD_DELAY", 2)),
+        "CONCURRENT_REQUESTS_PER_DOMAIN": env_int("CLINICALTRIALS_CONCURRENT_REQUESTS_PER_DOMAIN", 1),
     }
 
     async def start(self):

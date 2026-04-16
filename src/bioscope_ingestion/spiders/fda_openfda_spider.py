@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 import scrapy
 
 from bioscope_ingestion.items import IngestionRecord
-from common.config import env_bool, env_str
+from common.config import env_bool, env_int, env_str
 from common.state_store import SourceStateStore
 
 
@@ -13,6 +13,8 @@ class FdaOpenFdaSpider(scrapy.Spider):
     handle_httpstatus_list = [304]
     custom_settings = {
         "ROBOTSTXT_OBEY": False,
+        "DOWNLOAD_DELAY": float(env_int("FDA_DOWNLOAD_DELAY", 1)),
+        "CONCURRENT_REQUESTS_PER_DOMAIN": env_int("FDA_CONCURRENT_REQUESTS_PER_DOMAIN", 2),
     }
 
     async def start(self):

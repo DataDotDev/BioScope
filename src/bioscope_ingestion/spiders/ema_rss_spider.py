@@ -5,13 +5,17 @@ from dateutil import parser as date_parser
 import scrapy
 
 from bioscope_ingestion.items import IngestionRecord
-from common.config import env_bool, env_str
+from common.config import env_bool, env_int, env_str
 from common.state_store import SourceStateStore
 
 
 class EmaRssSpider(scrapy.Spider):
     name = "ema_rss"
     handle_httpstatus_list = [304]
+    custom_settings = {
+        "DOWNLOAD_DELAY": float(env_int("EMA_DOWNLOAD_DELAY", 0)),
+        "CONCURRENT_REQUESTS_PER_DOMAIN": env_int("EMA_CONCURRENT_REQUESTS_PER_DOMAIN", 1),
+    }
 
     async def start(self):
         feed_url = os.getenv("EMA_RSS_URL", "https://www.ema.europa.eu/en/news.xml")

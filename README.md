@@ -184,6 +184,33 @@ The script uses the local JSONL sink by default. To route output to Kafka, set `
 - DOWNLOAD_DELAY: fixed download delay used alongside AutoThrottle (default: 1)
 - CONCURRENT_REQUESTS: total concurrent requests across the crawler (default: 8)
 - CONCURRENT_REQUESTS_PER_DOMAIN: concurrent requests per domain (default: 2)
+
+### Source-Specific Throttle Settings
+
+Each data source has customized throttle settings tuned to its API/feed characteristics. Set these in `.env` to override global throttle defaults for each source:
+
+**ClinicalTrials.gov** (large paginated API):
+
+- `CLINICALTRIALS_DOWNLOAD_DELAY`: delay in seconds between requests (default: 2)
+- `CLINICALTRIALS_CONCURRENT_REQUESTS_PER_DOMAIN`: concurrent requests (default: 1)
+
+**FDA OpenFDA API** (government API):
+
+- `FDA_DOWNLOAD_DELAY`: delay in seconds (default: 1)
+- `FDA_CONCURRENT_REQUESTS_PER_DOMAIN`: concurrent requests (default: 2)
+
+**FDA RSS** (RSS feed):
+
+- `FDA_RSS_DOWNLOAD_DELAY`: delay in seconds (default: 1)
+- `FDA_RSS_CONCURRENT_REQUESTS_PER_DOMAIN`: concurrent requests (default: 2)
+
+**EMA RSS** (typically single request per run):
+
+- `EMA_DOWNLOAD_DELAY`: delay in seconds (default: 0)
+- `EMA_CONCURRENT_REQUESTS_PER_DOMAIN`: concurrent requests (default: 1)
+
+These settings are applied per-spider in their `custom_settings` and override global throttle defaults when the spider runs.
+
 - RETRY_ENABLED: enable retries for transient HTTP failures (default: true)
 - RETRY_TIMES: number of retry attempts for transient HTTP failures (default: 3)
 - METRICS_ENABLED: emit per-spider run metrics to JSONL file (default: true)

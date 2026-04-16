@@ -5,13 +5,17 @@ from dateutil import parser as date_parser
 import scrapy
 
 from bioscope_ingestion.items import IngestionRecord
-from common.config import env_bool, env_str
+from common.config import env_bool, env_int, env_str
 from common.state_store import SourceStateStore
 
 
 class FdaRssSpider(scrapy.Spider):
     name = "fda_rss"
     handle_httpstatus_list = [304]
+    custom_settings = {
+        "DOWNLOAD_DELAY": float(env_int("FDA_RSS_DOWNLOAD_DELAY", 1)),
+        "CONCURRENT_REQUESTS_PER_DOMAIN": env_int("FDA_RSS_CONCURRENT_REQUESTS_PER_DOMAIN", 2),
+    }
 
     async def start(self):
         feed_url = os.getenv("FDA_RSS_URL", "").strip()
