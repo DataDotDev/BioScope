@@ -310,4 +310,4 @@ Milestone 3: Reliability + Quality
 
 This project is currently a functional ingestion backbone for BioScope with incremental crawling, stateful source tracking, canonicalization support, and local/prod sink flexibility. It is ready for continued integration into downstream analytics services, but not yet production-hardened until Milestone 3 items are completed.
 
-<img width="537" height="612" alt="image" src="https://github.com/user-attachments/assets/d457c8c4-8513-4c3e-8d6a-9d460f0d75ee" />
+<img width="537" height="612" alt="image" src="https://github.com/user-attachments/assets/4130be31-0203-4de1-9c4b-3f677b3f43c7" />
